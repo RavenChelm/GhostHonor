@@ -20,7 +20,6 @@ public class Bullet : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("Create");
         transform.Rotate(new Vector3(90, 0, 0));
         starPos = transform.position;
         rb = GetComponent<Rigidbody>();
@@ -34,35 +33,39 @@ public class Bullet : MonoBehaviour
     {
         CurrentPos = transform.position;
         distance = Vector3.Distance(starPos, CurrentPos);
-        Debug.Log(CurrentPos);
         Physics.Raycast(transform.position, new Vector3(0, 0, 1), out hitForward, bounds.size.z);
         Physics.Raycast(transform.position, new Vector3(0.5f, 0.5f, 1), out hitRight, bounds.size.z);
         Physics.Raycast(transform.position, new Vector3(-0.5f, 0.5f, 1), out hitLeft, bounds.size.z);
         Physics.Raycast(transform.position, new Vector3(0, -0.5f, 1), out hitDown, bounds.size.z);
         Physics.Raycast(transform.position, new Vector3(0, 0.5f, 1), out hitUp, bounds.size.z);
-        Physics.Raycast(transform.position, new Vector3(0, 0, -1), out hitBackward, bounds.size.z);
+        //Physics.Raycast(transform.position, new Vector3(0, 0, -1), out hitBackward, bounds.size.z);
 
-        if (HitRighdBody())
-        {
-            var col = HitObj();
-            col.attachedRigidbody.AddForce(rb.velocity / rb.mass, ForceMode.Acceleration);
-        }
+        // if (HitRighdBody())
+        // {
+        //     var obj = HitObj();
+        //     if (obj.tag == "enemy")
+        //     {
+        //         obj.SendMessage("RagDollOn");
+        //     }
+        //     HitCol().attachedRigidbody.AddForce(rb.velocity / rb.mass, ForceMode.Acceleration);
+        // }
+        Debug.Log(HitObj().name);
 
     }
 
     private bool HitRighdBody()
     {
-        if (hitForward.rigidbody || hitRight.rigidbody || hitLeft.rigidbody || hitDown.rigidbody || hitUp.rigidbody || hitBackward.rigidbody)
+        if (hitForward.rigidbody || hitRight.rigidbody || hitLeft.rigidbody || hitDown.rigidbody || hitUp.rigidbody /*|| hitBackward.rigidbody*/)
             return true;
         else
             return false;
     }
     private string HitTag()
     {
-        if (hitBackward.collider != null)
-        {
-            return "item";
-        }
+        // if (hitBackward.collider != null)
+        // {
+        //     return "item";
+        // }
         if (hitUp.collider != null)
         {
             return "item";
@@ -89,12 +92,47 @@ public class Bullet : MonoBehaviour
         }
     }
 
-    private Collider HitObj()
+    private GameObject HitObj()
     {
-        if (hitBackward.collider != null)
+
+        // if (hitBackward.transform.gameObject != null)
+        // {
+        //     return hitBackward.transform.gameObject;
+        // }
+        if (hitUp.collider != null)
         {
-            return hitBackward.collider;
+            return hitBackward.transform.gameObject;
         }
+        if (hitDown.collider != null)
+        {
+            return hitBackward.transform.gameObject;
+        }
+        if (hitLeft.collider != null)
+        {
+            return hitBackward.transform.gameObject;
+        }
+        if (hitRight.collider != null)
+        {
+            return hitBackward.transform.gameObject;
+        }
+        if (hitForward.collider != null)
+        {
+            return hitBackward.transform.gameObject;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+
+    private Collider HitCol()
+    {
+
+        // if (hitBackward.collider != null)
+        // {
+        //     return hitBackward.collider;
+        // }
         if (hitUp.collider != null)
         {
             return hitBackward.collider;
@@ -124,7 +162,7 @@ public class Bullet : MonoBehaviour
     IEnumerator Time()
     {
 
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.2f);
         Destroy(this.gameObject);
 
     }

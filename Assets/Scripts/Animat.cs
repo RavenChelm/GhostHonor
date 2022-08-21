@@ -10,17 +10,17 @@ public class Animat : MonoBehaviour
     private void Start()
     {
         PlCr = Player.GetComponent<PlayerContoller>();
+        animat.updateMode = AnimatorUpdateMode.UnscaledTime;
     }
     void Update()
     {
-        Debug.Log(PlCr.teleportSwitch);
-        if (PlCr.teleportSwitch)
+        if (PlCr._teleportSwitch)
         {
-            animat.SetBool("Teleport", true);
+            animat.SetBool("Cast", true);
         }
         else
         {
-            animat.SetBool("Teleport", false);
+            animat.SetBool("Cast", false);
 
         }
     }

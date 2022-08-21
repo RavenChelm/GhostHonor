@@ -16,22 +16,20 @@ public class PlayerContoller : MonoBehaviour
     private Vector2 moveXZ = new Vector2(0, 0);
     [SerializeField] private float jumpForce = 10f;
     private float jumpForceSqrt = 5;
+    [SerializeField] private float dragOnGround = 5;
+    [SerializeField] private float dragInAir = 0;
     [SerializeField] private float gravityScale = 2.5f;
     private float jumpHeightTime = 0f;
     private float maxJumpHeightTime = 0.4f;
     [SerializeField] private GameObject TeleportBox;
+    private SphereCollider TPBoxCollider;
     [SerializeField] private GameObject TeleportSphere;
     [SerializeField] public bool teleportSwitch;
-
-    public bool _teleportSwitch
-    {
-        get;
-    }
-    private float distanceToTeleport = 10;
+    public bool _teleportSwitch { get { return teleportSwitch; } }
+    [SerializeField] private float distanceToTeleport = 10;
     private bool inputKey;
     private GameObject TPBox;
     private Vector3 Ray_start_pos = new Vector3(Screen.width / 2, Screen.height / 2, 0);
-    [SerializeField] private GameObject bullet_prefab;
     [SerializeField] private float StrafeSpeed = 100;
     [SerializeField] private int chargeStrafe = 2;
     [SerializeField] private int maxChargeStrafe = 2;
@@ -39,9 +37,18 @@ public class PlayerContoller : MonoBehaviour
     [SerializeField] private int maxChargeTeleport = 2;
     private bool oneT = true;
     private bool oneS = true;
-
-
-
+    [SerializeField] private float bullet_Force = 100;
+    [SerializeField] private float teleportSpeed = 50;
+    private bool tMove = false;
+    private Vector3 PosToTeleport;
+    private bool climbUp = false;
+    public bool _climbUp { get { return climbUp; } set { climbUp = value; } }
+    private bool climbMiddle = false;
+    public bool _climbMiddle { get { return climbMiddle; } set { climbMiddle = value; } }
+    private bool moveUp = false;
+    [SerializeField] private Transform ClimbUpPoint;
+    private Vector3 copyClimbUpPoint;
+    private Vector3 teleportOffset;
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
@@ -53,14 +60,19 @@ public class PlayerContoller : MonoBehaviour
         }
         col = gameObject.GetComponent<CapsuleCollider>();
         main_Camera = gameObject.transform.GetChild(0).gameObject.GetComponent<Camera>();
+        TPBoxCollider = TeleportSphere.GetComponent<SphereCollider>();
     }
     void Update()
     {
         MouseLook();
+        Shot();
+        Teleport();
+        Climb();
+    }
+    void FixedUpdate()
+    {
         Jump();
         MoveLogick();
-        Teleport();
-        Shot();
         Strafe();
     }
     private void Jump()
@@ -72,6 +84,7 @@ public class PlayerContoller : MonoBehaviour
 
         if (Grounded() && JumpInput)
         {
+            rb.drag = dragInAir;
             rb.AddForce(new Vector3(0, jumpForce, 0), ForceMode.Impulse);
         }
         else if (JumpInput && jumpHeightTime < maxJumpHeightTime)
@@ -82,6 +95,7 @@ public class PlayerContoller : MonoBehaviour
         }
         else if (Grounded())
         {
+
             jumpForceSqrt = jumpForce;
             jumpHeightTime = 0;
         }
@@ -93,15 +107,22 @@ public class PlayerContoller : MonoBehaviour
 
         Vector3 move = new Vector3(deltaX, 0, deltaZ);
         move = transform.TransformDirection(move);
-        rb.AddForce(move, ForceMode.VelocityChange);
+        rb.AddForce(move, ForceMode.Impulse);
 
         moveXZ.x = rb.velocity.x;
         moveXZ.y = rb.velocity.z;
         moveXZ = Vector2.ClampMagnitude(moveXZ, speed);
         rb.velocity = new Vector3(moveXZ.x, rb.velocity.y, moveXZ.y);
+
+        if (Grounded())
+        {
+            rb.drag = dragOnGround;
+        }
+        else
+        {
+            rb.drag = dragInAir;
+        }
     }
-
-
     private void Strafe()
     {
         if (Input.GetKeyDown(KeyCode.LeftShift) && chargeStrafe > 0)
@@ -112,6 +133,7 @@ public class PlayerContoller : MonoBehaviour
             rb.AddForce(velocityVec, ForceMode.Impulse);
 
             chargeStrafe--;
+            StartCoroutine(TimeStrafe());
             if (oneS == true)
             {
                 oneS = false;
@@ -130,108 +152,149 @@ public class PlayerContoller : MonoBehaviour
     }
     private void Teleport()
     {
-        Ray ray = main_Camera.ScreenPointToRay(Ray_start_pos);
-        RaycastHit hit;
-        Vector3 posToTp = new Vector3(Camer.transform.position.x,
-        Camer.transform.position.y, Camer.transform.position.z + 10);
-        TeleportSphere.transform.localEulerAngles = new Vector3(_rotationY, 0, 0);
-        var InputMouseButton1 = Input.GetMouseButton(1);
-
-        if (!(Input.GetKey(KeyCode.F)) && Input.GetMouseButton(1) && chargeTeleport > 0)
+        int playerIndexLayer = LayerMask.NameToLayer("Player");
+        if (playerIndexLayer == -1)
         {
-            teleportSwitch = true;
-            TeleportSphere.SetActive(true);
-            Physics.Raycast(ray, out hit);
+            Debug.LogError("Layer Does not exist");
+        }
+        else
+        {
+            int layerMask = (1 << playerIndexLayer);
+            layerMask = ~layerMask;
+            Ray ray = main_Camera.ScreenPointToRay(Ray_start_pos);
+            RaycastHit hit;
+            var InputMouseButton1 = Input.GetMouseButton(1);
 
-            if (InputKey() == false)
+            //Cast Teleport Mark
+            if (!(Input.GetKey(KeyCode.F)) && Input.GetMouseButton(1) && chargeTeleport > 0)
             {
-                Time.timeScale = 0f;
-                rb.isKinematic = true;
+                teleportSwitch = true;
+                TeleportSphere.SetActive(true);
+                var StatusRay = Physics.Raycast(ray, out hit, distanceToTeleport, layerMask);
+
+                // Time scale
+                if (InputKey() == false)
+                {
+                    Time.timeScale = 1f;
+                    rb.isKinematic = true;
+                }
+                else
+                {
+                    Time.timeScale = 1f;
+                    rb.isKinematic = false;
+                }
+
+                if (StatusRay && hit.distance <= distanceToTeleport)
+                {
+                    if (TPBox == null)
+                    {
+                        TPBox = Instantiate(TeleportBox,
+                        new Vector3(hit.point.x, hit.point.y - 0.01f, hit.point.z),
+                        Quaternion.identity, TeleportSphere.transform);
+                    }
+                    else if (hit.collider != TPBoxCollider)
+                    {
+                        TPBox.transform.position = Vector3.MoveTowards(TPBox.transform.position,
+                        new Vector3(hit.point.x, hit.point.y - 0.01f, hit.point.z), Time.deltaTime * teleportSpeed);
+                    }
+                    TPBox.transform.rotation = TeleportSphere.transform.localRotation;
+                }
             }
-            else
+            //End cast with teleport
+            if (Input.GetMouseButtonUp(1))
             {
-                Time.timeScale = 1f;
+                TeleportSphere.SetActive(false);
+                teleportSwitch = false;
                 rb.isKinematic = false;
-            }
 
-            if (hit.distance <= distanceToTeleport)
-            {
-                if (TPBox == null)
+                Time.timeScale = 1f;
+                if (TPBox != null)
                 {
-                    TPBox = Instantiate(TeleportBox, hit.point, Quaternion.identity);
-                }
-                else if (hit.collider != TPBox.GetComponent<Collider>())
-                {
-                    TPBox.transform.position = hit.point;
-                }
-            }
-            else
-            {
-                //TPBox = Instantiate(TeleportBox, TeleportSphere.transform.position, Quaternion.identity);
-                TPBox.transform.position = TeleportSphere.transform.position;
-            }
-            if (TPBox.transform.position == Vector3.zero)
-            {
-                TPBox.transform.position = TeleportSphere.transform.position;
+                    chargeTeleport--;
+                    if (oneT == true)
+                    {
+                        oneT = false;
+                        StartCoroutine(ReloadTeleport());
+                    }
+                    Debug.Log(chargeTeleport);
+                    PosToTeleport = TPBox.transform.position;
+                    PosToTeleport.y = PosToTeleport.y + 1;
+                    // transform.position = PosToTeleport;
+                    tMove = true;
 
+                    Destroy(TPBox);
+                }
+            }
+            //move to teleport( blink )
+            if (tMove)
+            {
+                transform.position = Vector3.MoveTowards(transform.position, PosToTeleport, 100 * Time.deltaTime);
+                rb.isKinematic = true;
+                if (transform.position == PosToTeleport)
+                {
+                    rb.isKinematic = false;
+                    tMove = false;
+                }
+            }
+            //End cast with out teleport
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                TeleportSphere.SetActive(false);
+                teleportSwitch = false;
+                rb.isKinematic = false;
+                Time.timeScale = 1f;
+                InputMouseButton1 = false;
+
+                if (TPBox != null)
+                {
+                    Destroy(TPBox);
+                }
             }
         }
-
-        if (Input.GetMouseButtonUp(1))
-        {
-            TeleportSphere.SetActive(false);
-            teleportSwitch = false;
-            rb.isKinematic = false;
-
-            Time.timeScale = 1f;
-            if (TPBox != null)
-            {
-                chargeTeleport--;
-                if (oneT == true)
-                {
-                    oneT = false;
-                    StartCoroutine(ReloadTeleport());
-                }
-                Debug.Log(chargeTeleport);
-                var PosToTeleport = TPBox.transform.position;
-                PosToTeleport.y = PosToTeleport.y + 1;
-                transform.position = PosToTeleport;
-
-                Destroy(TPBox);
-            }
-
-
-        }
-
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            TeleportSphere.SetActive(false);
-            teleportSwitch = false;
-            rb.isKinematic = false;
-            Time.timeScale = 1f;
-            InputMouseButton1 = false;
-
-            if (TPBox != null)
-            {
-                Destroy(TPBox);
-            }
-        }
-
-
     }
     private void Shot()
     {
-        if (Input.GetMouseButtonDown(0))
+        //layerMask
+        int playerIndexLayer = LayerMask.NameToLayer("Player");
+        int teleportSphereIndexLayer = LayerMask.NameToLayer("TeleportSphere");
+        if (playerIndexLayer == -1 || teleportSphereIndexLayer == -1)
         {
-            var bullet = Instantiate(bullet_prefab, Camer.transform.position, Camer.transform.rotation);
+            Debug.LogError("Layer Does not exist");
         }
+        else
+        {
+            int layerMask = (1 << playerIndexLayer) | (1 << teleportSphereIndexLayer);
+            layerMask = ~layerMask;
+            //mech
+            if (Input.GetMouseButtonDown(0))
+            {
+                Ray ray = main_Camera.ScreenPointToRay(Ray_start_pos);
+                RaycastHit hit;
+                Physics.Raycast(ray, out hit, 100, layerMask); //100 - distance shot
+                if (hit.transform != null)
+                {
+                    Debug.Log(hit.transform.gameObject.name);
+                    if (hit.collider.tag == "enemy")
+                    {
+
+                        ArrayList list = new ArrayList() { ray.direction, bullet_Force, hit.collider };
+
+                        hit.transform.root.SendMessage("RagDollOn");
+                        hit.transform.root.SendMessage("AddForceToBody", list);
+                    }
+                }
+
+            }
+
+        }
+
     }
     private bool Grounded()
     {
         RaycastHit hit;
         return Physics.SphereCast(
         col.bounds.center,
-        col.radius,
+        col.radius - 0.1f,
         Vector3.down,
         out hit,
         col.height / 2 - 0.1f);
@@ -245,6 +308,27 @@ public class PlayerContoller : MonoBehaviour
         else
         {
             return false;
+        }
+    }
+    private void Climb()
+    {
+
+        if (climbUp == false && climbMiddle == true &&
+        Input.GetButton("Jump") == true)
+        {
+            Debug.Log("Climb!");
+            moveUp = true;
+            rb.isKinematic = true;
+            copyClimbUpPoint = ClimbUpPoint.position;
+        }
+        if (moveUp == true)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, copyClimbUpPoint, 10 * Time.deltaTime);
+            if (transform.position == copyClimbUpPoint)
+            {
+                moveUp = false;
+                rb.isKinematic = false;
+            }
         }
     }
 
@@ -278,6 +362,18 @@ public class PlayerContoller : MonoBehaviour
         }
         Debug.Log(chargeStrafe);
     }
+    IEnumerator TimeStrafe()
+    {
+        Time.timeScale = 1f;
+        yield return new WaitForSeconds(0.15f);
+        Time.timeScale = 0.5f;
+        yield return new WaitForSeconds(0.15f);
+        Time.timeScale = 1f;
 
+    }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        Debug.Log(other.name);
+    }
 }
