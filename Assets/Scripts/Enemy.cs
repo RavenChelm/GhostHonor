@@ -18,7 +18,6 @@ public class Enemy : MonoBehaviour
     }
     private void RagDollOn()
     {
-        Debug.Log("qwqwqwqwqw");
 
         foreach (Rigidbody rb in rb_arr)
         {

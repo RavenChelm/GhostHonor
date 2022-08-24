@@ -49,6 +49,10 @@ public class PlayerContoller : MonoBehaviour
     [SerializeField] private Transform ClimbUpPoint;
     private Vector3 copyClimbUpPoint;
     private Vector3 teleportOffset;
+    [SerializeField] private ParticleSystem fireParticleSystem;
+    [SerializeField] private Transform Gun;
+    private bool shoot;
+    public bool _shoot { get { return shoot; } set { shoot = value; } }
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
@@ -61,6 +65,7 @@ public class PlayerContoller : MonoBehaviour
         col = gameObject.GetComponent<CapsuleCollider>();
         main_Camera = gameObject.transform.GetChild(0).gameObject.GetComponent<Camera>();
         TPBoxCollider = TeleportSphere.GetComponent<SphereCollider>();
+        fireParticleSystem.Stop();
     }
     void Update()
     {
@@ -192,11 +197,16 @@ public class PlayerContoller : MonoBehaviour
                         new Vector3(hit.point.x, hit.point.y - 0.01f, hit.point.z),
                         Quaternion.identity, TeleportSphere.transform);
                     }
-                    else if (hit.collider != TPBoxCollider)
-                    {
-                        TPBox.transform.position = Vector3.MoveTowards(TPBox.transform.position,
-                        new Vector3(hit.point.x, hit.point.y - 0.01f, hit.point.z), Time.deltaTime * teleportSpeed);
-                    }
+                    // else if (hit.collider != TPBoxCollider)
+                    // {
+                    TPBox.transform.position = Vector3.MoveTowards(TPBox.transform.position,
+                    new Vector3(hit.point.x, hit.point.y - 0.01f, hit.point.z), Time.deltaTime * teleportSpeed);
+                    // }
+                    // else
+                    // {
+                    // TPBox.transform.position = Vector3.MoveTowards(TPBox.transform.position,
+                    // new Vector3(hit.point.x, hit.point.y - 0.01f, hit.point.z), Time.deltaTime * teleportSpeed);
+                    //}
                     TPBox.transform.rotation = TeleportSphere.transform.localRotation;
                 }
             }
@@ -266,11 +276,15 @@ public class PlayerContoller : MonoBehaviour
             int layerMask = (1 << playerIndexLayer) | (1 << teleportSphereIndexLayer);
             layerMask = ~layerMask;
             //mech
-            if (Input.GetMouseButtonDown(0))
+            if (Input.GetMouseButtonDown(0) && shoot == false)
             {
+                shoot = true;
+                fireParticleSystem.Play();
                 Ray ray = main_Camera.ScreenPointToRay(Ray_start_pos);
                 RaycastHit hit;
-                Physics.Raycast(ray, out hit, 100, layerMask); //100 - distance shot
+                Physics.SphereCast(ray, 1, out hit, 30, layerMask);
+
+                //Physics.Raycast(ray, out hit, 100, layerMask); //100 - distance shot
                 if (hit.transform != null)
                 {
                     Debug.Log(hit.transform.gameObject.name);
@@ -282,9 +296,14 @@ public class PlayerContoller : MonoBehaviour
                         hit.transform.root.SendMessage("RagDollOn");
                         hit.transform.root.SendMessage("AddForceToBody", list);
                     }
-                }
+                    if (hit.collider.tag == "item")
+                    {
+                        hit.rigidbody.AddForce(ray.direction * bullet_Force, ForceMode.Impulse);
+                    }
 
+                }
             }
+
 
         }
 
@@ -369,7 +388,6 @@ public class PlayerContoller : MonoBehaviour
         Time.timeScale = 0.5f;
         yield return new WaitForSeconds(0.15f);
         Time.timeScale = 1f;
-
     }
 
     private void OnTriggerEnter(Collider other)

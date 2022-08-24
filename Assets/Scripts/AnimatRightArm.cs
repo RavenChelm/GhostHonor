@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Animat : MonoBehaviour
+public class AnimatRightArm : MonoBehaviour
 {
     [SerializeField] private Animator animat;
     [SerializeField] GameObject Player;
@@ -14,14 +14,19 @@ public class Animat : MonoBehaviour
     }
     void Update()
     {
-        if (PlCr._teleportSwitch)
+        if (PlCr._shoot)
         {
-            animat.SetBool("Cast", true);
+            animat.SetBool("Shoot", true);
         }
         else
         {
-            animat.SetBool("Cast", false);
+            PlCr._shoot = false;
+            animat.SetBool("Shoot", false);
         }
-
+    }
+    public void ShootToggle()
+    {
+        PlCr._shoot = false;
+        animat.SetBool("Shoot", false);
     }
 }
