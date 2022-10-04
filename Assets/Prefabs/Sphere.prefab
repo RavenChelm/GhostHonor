@@ -20745,8 +20745,8 @@ ParticleSystem:
       maxColor: {r: 1, g: 1, b: 1, a: 1}
       maxGradient:
         serializedVersion: 2
-        key0: {r: 1, g: 0.08196721, b: 0, a: 0}
-        key1: {r: 0, g: 0, b: 0, a: 1}
+        key0: {r: 0.61957103, g: 0.6725261, b: 0.8584906, a: 0}
+        key1: {r: 0.43867922, g: 0.4555088, b: 1, a: 1}
         key2: {r: 0, g: 0, b: 0, a: 1}
         key3: {r: 0, g: 0, b: 0, a: 0}
         key4: {r: 0, g: 0, b: 0, a: 0}
@@ -38719,7 +38719,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 555580437996467103}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 10}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
@@ -38759,7 +38759,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: bfeeb121274535f43a78378a499aa083, type: 2}
+  - {fileID: 2100000, guid: dc4a27edbe883f7428254a9df49f0c53, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -38797,6 +38797,7 @@ MonoBehaviour:
   upSystem: {fileID: 555580437201191257}
   downSystem: {fileID: 555580437038097382}
   shpereCollider: {fileID: 4104010044175760081}
+  helpSphere: {fileID: 6049947928079750780}
 --- !u!135 &4104010044175760081
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -38853,7 +38854,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4975821202853665236}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.751, z: 0}
+  m_LocalPosition: {x: 0, y: -2.46, z: 0}
   m_LocalScale: {x: 0.33709, y: 0.33709, z: 0.33709}
   m_ConstrainProportionsScale: 0
   m_Children: []
