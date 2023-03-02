@@ -1,5 +1,5 @@
 # GhostHonor
- portfolio project
+Learn Project
 
 Vk: https://vk.com/chemistal
 
